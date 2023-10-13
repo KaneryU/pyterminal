@@ -159,12 +159,18 @@ with open("pyTerm.path", 'r') as pathfile:
             for i in pathfile:
                 if not i in PATH or i == "" or i == "\n":
                   PATH.append(i)
-                  
-def cleanPath():                
+      
+def cleanPath():
+    iter = 0               
     for i in PATH:
         if i == "" or i == "\n":
             PATH.remove(i)
-
+        if not os.path.exists(i):
+            PATH.remove(i)
+        if i[len(i) - 1] != "\\":
+            PATH[iter] = PATH[iter] + "\\"
+        iter += 1
+    
 while True:
     cleanPath()
     run = 0
