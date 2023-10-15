@@ -23,16 +23,16 @@ if len(sys.argv) > 1:
 else:
     cwd = locationOfTerminal
 if os.path.exists("isinstalled"):
-    internalFileLocations = {"dir": "dir.exe", "info": "info.exe", "help": "help.exe", "request" : "request.exe"}
+    internalFileLocations = {"dir": f"{locationOfTerminal}\\dir\\dir.exe", "info": "info.exe", "help": "help.exe", "request" : f"{locationOfTerminal}\\dir\\request.exe"}
 else:
     internalFileLocations = {"dir": "dir.py", "info": "info.py", "help": "help.py", "request" : "request.py"} 
-with open ("pyTerm.dump", "r") as pyTerm:
+with open ("pyTerm.dump", "a+") as pyTerm:
     pyTerm.seek(0)
     try:
         pyTermDump = json.load(pyTerm)
     except:
         pass 
-with open("pyTerm.path", 'r') as pathfile:
+with open("pyTerm.path", 'a+') as pathfile:
             for i in pathfile.read().split("\n"):
                 print(i)
                 PATH.append(i)  

@@ -2,3 +2,5 @@
 /pyTerm.dump
 *.spec
 *.pyc
+build/
+dist/
