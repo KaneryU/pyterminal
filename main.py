@@ -1,8 +1,4 @@
-import sys
-import os
-import json
-import info
-import subprocess
+import sys, os, json, info, subprocess, time
 from pathlib import Path
 from internal_utils import divider, delline, choice
 
@@ -11,10 +7,12 @@ from tqdm import tqdm
 
 os.system("cls")
 print("Starting pyTerm...")
-with open ("pyTerm.txt", "a+") as pyTerm:
+pyTermDump = {}
+fileLocations = {}
+with open ("pyTerm.dump", "a+") as pyTerm:
     pyTerm.seek(0)
     try:
-        dump = json.load(pyTerm)
+        pyTermDump = json.load(pyTerm)
     except:
         pass
 
@@ -32,7 +30,7 @@ def parsecmd(cmd):
 
 
 def cd(cmd):
-    global cwd
+    global cwd, pyTermDump
     if len(cmd) > 1:
         if cmd[1] == "..":
             if os.path.exists(Path(cwd).parents[0]):
@@ -46,11 +44,13 @@ def cd(cmd):
                 print("Path does not exist.")
     else:
         print(cwd)
+    pyTermDump["cwd"] = cwd
+    with open ("pyTerm.dump", "w") as pyTerm:
+        json.dump(pyTermDump, pyTerm)
+    return(cwd)
         
 def find(cmd):
-    global PATH
-    global cwd
-    global runlist
+    global PATH, cwd, runlist, fileLocations
     local_path = []
 
     for i in PATH:
@@ -59,20 +59,20 @@ def find(cmd):
         
     local_path.append(cwd)
     
-    for i in local_path:
-        if i[len(i) - 1] != "\\":
-            local_path[iter] = local_path[iter] + "\\"
-        iter += 1
-        
+    cleanPath(local_path)    
     runlist = []
     
-    
+    if fileLocations.get(cmd[0]) != None:
+        runlist = [fileLocations[cmd[0]]]
+        for i in cmd[1:]:
+            runlist.append(i)
+        return(runlist)
 
          
-    for i in tqdm(local_path, leave = False): # for each path in PATH and current directory
+    for i in tqdm(local_path, leave = False, desc = " Search Host"): # for each path in PATH and current directory
+        j = ""
         
-        
-        for j in tqdm(os.listdir(i), leave = False): # for each subdirectory and file in i
+        for j in tqdm(os.listdir(i), leave = False, desc = f"Subdir Search, {i+j}"): # for each subdirectory and file in i
             
             if os.path.isdir(i + j + '\\'): # if it is a directory
                 
@@ -85,7 +85,7 @@ def find(cmd):
                     for k in cmd[1:]:
                         
                         runlist.append(k) # also add all arguments
-                        
+                    fileLocations[cmd[0]] = i + j + r"\\" + cmd[0]    
                     return(runlist)
                 
                 elif not os.listdir(i + j) == []:
@@ -93,12 +93,13 @@ def find(cmd):
                     findRecusable(i + j + '\\', cmd)        
                         
             elif i + j == i + cmd[0]:
-                
+                fileLocations[cmd[0]] = i + j
                 runlist = [i + j] # if yes, then run it
                 
                 for k in cmd[1:]:
                     
                     runlist.append(k) # also add all arguments
+                    
                 return(runlist)         
                        
             
@@ -108,16 +109,16 @@ def find(cmd):
     return([]) # if you reached here, the file was not found
 
 def findRecusable(path, cmd):
-    
-    for j in tqdm(os.listdir(path), leave = False): # for each subdirectory and file the given path
-            
+    global fileLocations
+    j = ""
+    for j in tqdm(os.listdir(path), leave = False, desc = f"Recursible Host, {path + j}"): # for each subdirectory and file the given path
             if os.path.isdir(path + j + '\\'): # if it is a directory
                 
                 #print(path + j + r"\\" + cmd[0])
                 
                 if os.path.exists(path + j + cmd[0]): # does the file exist here?
                     
-                    runlist = [path + j + r"\\" + cmd[0]] # if yes, then run it
+                    runlist = [path + j + "\\" + cmd[0]] # if yes, then run it
                     
                     for k in cmd[1:]:
                         
@@ -130,7 +131,7 @@ def findRecusable(path, cmd):
                     findRecusable(path + j + '\\', cmd)        
                         
             elif os.path.exists(path + j + '\\' + cmd[0]):
-                
+                fileLocations[cmd[0]] = i + j  + cmd[0]
                 runlist = [path + j + r"\\" + cmd[0]] # if yes, then run it
                 
                 for k in cmd[1:]:
@@ -156,23 +157,27 @@ else:
 runlist = []
 PATH = []
 with open("pyTerm.path", 'r') as pathfile:
-            for i in pathfile:
-                if not i in PATH or i == "" or i == "\n":
-                  PATH.append(i)
+            for i in pathfile.read().split("\n"):
+                print(i)
+                PATH.append(i)
       
-def cleanPath():
-    iter = 0               
-    for i in PATH:
-        if i == "" or i == "\n":
-            PATH.remove(i)
-        if not os.path.exists(i):
-            PATH.remove(i)
-        if i[len(i) - 1] != "\\":
-            PATH[iter] = PATH[iter] + "\\"
-        iter += 1
-    
+def cleanPath(PATH_):
+    if len(PATH_) > 1:
+        iter = 0               
+        while iter < len(PATH_):
+            if PATH_[iter] == "" or PATH_[iter] == "\n":
+                del PATH_[iter]
+            if not os.path.exists(PATH_[iter]) and PATH_[iter] in PATH_:
+                del PATH_[iter]
+            if PATH_[iter][len(PATH_[iter]) - 1] != "\\":
+                PATH_[iter] = PATH_[iter] + "\\"
+            iter += 1
+def echo(p):
+    print("Echo is uncompleted")
+    print(p)      
+     
 while True:
-    cleanPath()
+    cleanPath(PATH)
     run = 0
     cmd = input(f"{cwd}^> ")
     cmd = parsecmd(cmd)
@@ -237,9 +242,18 @@ while True:
                         else:
                             print(i + " Was not added to path becuase it isn't a valid path")
         else: 
-            for i in PATH:
-                print(i)
-
+            if len(PATH) == 0:
+                print("Path is empty.")
+            else:
+                for i in PATH:
+                    if not i == "":
+                        print(i)
+                    else:
+                        print("Empty Item")
+    if cmd[0] == "_fileLocations":
+        for i in fileLocations:
+            print(i + ": " + fileLocations[i])
+            
     if run == 0:
         try:
             runlist = find(cmd)
@@ -247,4 +261,6 @@ while True:
             print("PermisionError: " + str(e))                   
         if runlist == []:
             if 1 == 1: #enable or disable printing path and arugments
-                print("Command not found.")    
+                print("Command not found.")
+        else:
+            subprocess.run(runlist, shell = True)    

@@ -3,10 +3,19 @@ import os
 import datetime
 from internal_utils import delline, divider
 from tqdm import tqdm
+import json
 import regex
 
 args = sys.argv
-cwd = os.getcwd() + "\\"
+with open ("pyTerm.dump", "a+") as pyTerm:
+    pyTerm.seek(0)
+    try:
+        pyTermDump = json.load(pyTerm)
+    except:
+        print("Failed getting cwd from " + pyTerm.name)
+    
+cwd = pyTermDump["cwd"]
+
 screen = divider.screen()
 def toReadable(input):
     return (datetime.datetime.fromtimestamp(input).strftime('%Y-%m-%d %H:%M:%S'))
@@ -26,7 +35,7 @@ def parse(dirlist, wd = cwd):
     retlist = []
     screen_divisions = screen.screenWidth // 4
    #add the headers                                                                                                                                                                                             I live off the jank ˅
-    retlist.append(divider.textLeft("Type", screen_divisions, ' ') + divider.textCenter("Size", screen_divisions, ' ') + divider.textCenter("Name", screen_divisions, ' ') + divider.textRight(f"Last Modified", screen_divisions - 9, " "))
+    retlist.append(divider.textLeft("Type", screen_divisions + 1, ' ') + divider.textCenter("Size", screen_divisions, ' ') + divider.textCenter("Name", screen_divisions, ' ') + divider.textRight(f"Last Modified", screen_divisions - 9, " "))
     retlist.append("")
     
     for i in tqdm(dirlist, leave = False):
@@ -40,6 +49,81 @@ def parse(dirlist, wd = cwd):
     
     return(retlist)
 
+def sort(dirlist, wd = cwd):
+    templist = []
+    if wd == "dir/file":
+        for i in dirlist:
+            if os.path.isdir(i):
+                templist.append(i)
+        for i in dirlist:
+            if os.path.isfile(i):
+                templist.append(i)       
+        return(templist)
+    
+    elif wd == "file/dir":
+        for i in dirlist:
+            if os.path.isfile(i):
+                templist.append(i)
+        for i in dirlist:
+            if os.path.isdir(i):
+                templist.append(i)
+        return(templist)
+    
+    elif wd == "date":
+        datelist = []
+        templist = []
+        templist.extend([""] * len(dirlist))
+        for i in dirlist:
+            datelist.append(os.path.getmtime(i))
+            datelist.sort()
+        for i in dirlist:
+            index = datelist.index(os.path.getmtime(i))
+            datelist.pop(index)
+            templist[index] = i
+        return templist  
+     
+    elif wd == "dir/date":
+        datelist = []
+        
+        templistDir = []
+        templistDir2 = []
+        for i in dirlist:
+            if os.path.isdir(i):
+                templistDir.append(i)
+        templistDir2.extend([""] * len(templistDir)) 
+               
+        templistFile = []
+        templistFile2 = []
+        for i in dirlist:
+            if os.path.isfile(i):
+                templistFile.append(i)
+        templistFile2.extend([""] * len(templistFile))
+        
+        for i in templistDir:
+            datelist.append(os.path.getmtime(i))
+            datelist.sort()
+        for i in templistDir:
+            index = datelist.index(os.path.getmtime(i))
+            datelist.pop(index)
+            templistDir2[index] = i
+        
+        for i in templistFile:
+            datelist.append(os.path.getmtime(i))
+            datelist.sort()
+        for i in templistDir:
+            index = datelist.index(os.path.getmtime(i))
+            datelist.pop(index)
+            templistFile2[index] = i    
+        
+        for i in templistDir2:
+            templist.append(i)
+        for i in templistFile2:
+            templist.append(i)    
+            
+        return templist     
+    
+          
+            
 if len(args) == 1:
     # No args, list all subdirectories of current directory
     dir_list = os.listdir(cwd)
@@ -51,15 +135,17 @@ if len(args) > 1:
     '''
     -h / -help = print this message
     {search query} = search in directory
-    -s / -sort:{date}/{size}/{name} = sort (not available right now)
+    -s / -sort:{date}/{size}/{name} = sort the results.
     '''
     run = 0
     
     if args[1] == "-h" or args[1] == "-help":
         run = 1
         print("-h / -help = print this message \n{search query} = search in directory\n-s / -sort {date}/{size}/{name} to sort the results.")
+        
     elif args[1] == "-s" or args[1] == "-sort":
-        pass    
+        if len(args) == 3:
+            dir_list = parse(os.listdir(cwd))    
      
     elif args[1] == "-p" or args[1] == "-path":
         if len(args) == 3:
