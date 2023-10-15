@@ -17,7 +17,8 @@ class version_:
             "0.0.2 10/12/23 Halfway done with dir command",
             "0.0.3 10/13/23 90% Done with dir, working on run file",
             "0.1.0 10/13/23 dir -sort shelved. Terminal is now techinically usefull, it can run any file",
-            "0.1.5 10/14/23 dir -sort completed, run file is completed for the time being"
+            "0.1.5 10/14/23 dir -sort completed, run file is completed for the time being",
+            "0.2.0 10/15/23 SET command added, variables added as %varname% (can be used anywhere). The terminal now no longer has to search for builtin commands, it can just run them directly."
         ]
         
         self.milestones = [
